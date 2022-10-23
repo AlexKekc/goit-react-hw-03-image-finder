@@ -13,15 +13,12 @@ export class App extends Component {
     images: [],
     loading: false,
     query: '',
+    totalImages: null,
     page: 1,
     error: null,
     showModal: false,
     modalImage: '',
   };
-
-  componentDidMount() {
-    this.setState({ images: [] });
-  }
 
   async componentDidUpdate(_, prevState) {
     const prevQuery = prevState.query;
@@ -32,13 +29,13 @@ export class App extends Component {
     if (prevPage !== nextPage) {
       try {
         this.setState({ loading: true });
-        const responseImages = await API.getImages(
-          this.state.query,
-          this.state.page
-        );
+        const response = await API.getImages(this.state.query, this.state.page);
+        const responseImages = response.hits;
+        const responseTotalImages = response.totalHits;
         this.setState({
           loading: false,
           images: [...prevState.images, ...responseImages],
+          totalImages: responseTotalImages,
         });
       } catch (error) {
         this.setState({ error });
@@ -51,13 +48,13 @@ export class App extends Component {
       this.setState({ images: [], page: 1 });
       try {
         this.setState({ loading: true, images: [] });
-        const responseImages = await API.getImages(
-          this.state.query,
-          this.state.page
-        );
+        const response = await API.getImages(this.state.query, this.state.page);
+        const responseImages = response.hits;
+        const responseTotalImages = response.totalHits;
         this.setState({
           loading: false,
           images: [...responseImages],
+          totalImages: responseTotalImages,
         });
       } catch (error) {
         this.setState({ error });
@@ -91,7 +88,10 @@ export class App extends Component {
   };
 
   render() {
-    const { images, loading, error, showModal, modalImage } = this.state;
+    const { images, loading, totalImages, page, error, showModal, modalImage } =
+      this.state;
+    const showLoadMoreButton =
+      totalImages > 0 && Math.ceil(totalImages / 12) !== page;
 
     return (
       <Wrapper>
@@ -103,8 +103,8 @@ export class App extends Component {
             loadLargeImage={this.loadingLargeImage}
           />
         )}
-        {images.length > 0 && !loading && <Button loadMore={this.loadMore} />}
         {loading && <Loader />}
+        {showLoadMoreButton && !loading && <Button loadMore={this.loadMore} />}
         {showModal && (
           <Modal image={modalImage} closeModal={this.toggleModal} />
         )}
